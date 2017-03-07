@@ -153,11 +153,7 @@ setListeners = function() {
   // TODO $("#container").click(onClickDisk);
 
   $('form input:radio').change(function() {
-    var status = $('form input:radio:checked').val();
-    if (status === 'all') {
-      status = undefined;
-    }
-    updateFilter({ status: status });
+    updateFilter({ status: $('form input:radio:checked').val() });
   });
 
   // debouncer($, 'slowInput', 'input', 30);
@@ -349,6 +345,9 @@ displayPrint = function() {
 // var throttledRefresh = $.throttle(500, refresh);
 updateFilter = function(options) {
   $.extend(currentFilter, options);
+  if (currentFilter.status === 'all') {
+    delete currentFilter.status;
+  }
   console.log(currentFilter);
   // throttledRefresh();
   refresh();
