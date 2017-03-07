@@ -4,11 +4,17 @@
     <meta charset="utf-8">
     <!--meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width"-->
     <title>Use cases of Self Data</title>
-    <script src="scripts/vendors/jquery-1.9.1.js"></script>
+    <!-- <script src="scripts/vendors/jquery-1.9.1.js"></script> -->
+
+    <script src="scripts/vendors/jquery.min.js"></script>
     <script src="scripts/vendors/jquery.textfill.min.js"></script>
-    
+    <!-- <script src="scripts/vendors/jquery.ba-throttle-debounce.min" ></script> -->
+
+
     <script src="scripts/countries.js"></script>
     <script src="scripts/vendors/jade_runtime.js"></script>
+    <script async="async" src="scripts/templates/domain.js"></script>
+
     <script async="async" src="scripts/templates/templatedetail.js"></script>
     <script async="async" src="scripts/templates/templatelistpopin.js"></script>
     <script async="async" src="scripts/templates/templateprintlist.js"></script>
@@ -16,7 +22,7 @@
 
     <link href="styles/usecases.css" rel="stylesheet" type="text/css" />
 
-    <script src="http://www.google-analytics.com/ga.js" async="" type="text/javascript"></script>
+    <!-- script src="http://www.google-analytics.com/ga.js" async="" type="text/javascript"></script>
     <script type="text/javascript">//<![CDATA[
             // Google Analytics for WordPress by Yoast v4.3.3 | http://yoast.com/wordpress/google-analytics/
             var _gaq = _gaq || [];
@@ -32,28 +38,50 @@
                 s.parentNode.insertBefore(ga, s);
             })();
       //]]>
-      </script>
+      </script -->
 
  </head>
 
   <body>
     <h1>Use cases of Self Data</h1>
     <h2>Cartography of Self Data's use cases by main usage types</h2>
-    <div id="container">
+    <aside id="leftpanel">
+      <div id="usagesmap" >
       <img id="fond" class="mapbg" src="img/usecases/all.jpg" />
+      </div>
+      <form>
+        <label for='query'>Keyword filter</label>
+        <input title="Search" type='text' id='query'><span id='word_filter_submit' >Q</span>
+        <br>
+        <label><input type="radio" name="status" value="all" checked>All</label>
+        <!-- <label><input type="radio" name="status" value="all_mesinfos">MesInfos</label> -->
+        <label><input type="radio" name="status" value="operational">Operational</label>
+        <!-- <label><input type="radio" name="status" value="operational_mesinfos">Operational MesInfos</label> -->
+        <label><input type="radio" name="status" value="idea">Idea</label>
+        <!-- <label><input type="radio" name="status" value="idea_mesinfos">Idea MesInfos</label> -->
+      </form>
+      <div id='tools' >
+        <a href='res/SelfData_usecases-20160829.pdf' title="Usecases as pdf" target='blank'
+        ><img class='print' src='img/print.png'/></a><a href='data/mi_usecases.csv' title="Usecases list as raw csv." target='blank'
+        ><img class='print' src='img/spreadsheet.png' /></a><a href='data/mi_usecases.json' title="Usecases list as raw json." target='blank'
+        ><img class='print' src='img/export_data.png' /></a>
+      </div>
+    </aside>
+    <main>
       <a id="addusecase" href="https://form.jotformeu.com/60524863497364" target="_blank">Add a use case
       </a>
-    </div>
+      <p id="whythispage">
+      </p>
+      <!-- <iframe id="jotform" src="https://form.jotformeu.com/60524863497364"></iframe> -->
+      <div id='list'></div>
+    </main>
+
     <div id="printcontainer" style="display: none;">
     </div>
-    
+
     <div id='credits'>
-        <a href='res/SelfData_usecases-20160829.pdf' title="Usecases as pdf" target='blank'
-        ><img id='print' src='img/print.png'/></a>
-        <a href='data/mi_usecases.json' title="Usecases list as raw json." target='blank' 
-        ><img id='print' src='img/export_data.png' /></a>
         <img id='creditscc' title='Creative Commons' src='img/credits_creativecommons.png' />
-        <img id='creditsfing' title='Fing' src='img/credits_fing.png' />
+        <a href='http://fing.org'><img id='creditsfing' title='Fing' src='img/credits_fing.png' /></a>
         <!-- Noon Project :
           Idea : Created by joe pictos from the Noun Project
           work in progress : Created by Aldric Rodríguez Iborra from the Noun Project

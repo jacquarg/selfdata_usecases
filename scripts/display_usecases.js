@@ -23,22 +23,70 @@ var LONGLABELS_MAP = miConfig.areas.reduce(function(agg, area) {
   return agg;
 }, {});
 
+var DOMAINS = {
+  'Management': {
+    name: 'Management',
+    index: 1,
+    longName: "Data Management",
+    description: "I can access my documents, invoices, contracts, insurance, records at any time and from any place...<br>I use them, for example to provide proof of purchase, demonstrate a right, or quite simply to make my daily life easier.",
+  },
+  'Self-knowledge': {
+    index: 2,
+    name: 'Self-knowledge',
+    longName: 'Self Knowledge',
+    description: "I visualize my travel, my consumption, my skills, my health indicators in an understandable (even fun) way... I can also measure my sleep, my physical activity, my concentration. This information produce dashboards and all kinds of presentations to help me know myself better, to situate myself or measure my performance or my progress toward a goal.",
+  },
+
+  'Decisions and Action': {
+    index: 3,
+    name: "Decisions and Action",
+    longName: "Making & Implementing Better Decisions",
+    description: "I compare offers, figure out incomprehensible rates, I express my purchase intentions and invite sellers to respond, I post my own requests for proposals... I am in command of the relationship.",
+  },
+  'Control': {
+    index: 4,
+    longName: "Personal Data Control, Sharing, & Protection",
+    name: 'Control',
+    description: "I want to know who knows what about me, who has access to my data and who does what with it. I also want to switch between my different identities in a simple and secure manner, demonstrate that I have rights without having to reveal who I am, not have to re-enter the same informa- tion for the thousandth time.",
+  },
+  'Contribution': {
+    index: 5,
+    longName: "Contribution to Research & Collective Endeavours",
+    name: "Contribution",
+    description: "I share some of my data, anonymously, to contribute to a health study, public transport, consumption habits...",
+  },
+  'Conscience': {
+    index: 6,
+    longName: "Value-Based Living",
+    name: "Conscience",
+    description: "I measure my carbon footprint and access tools and advice to reduce it. I analyze my shopping list to buy more organic or more fair-trade products. I can more closely align my practices and consumption with my values without having to spend too much time on it.",
+  },
+  'Life experience': {
+    index: 7,
+    longName: "Experience and Social Practices",
+    name: "Life experience",
+    description: "Surprise me, make me experience new things thanks to my data! I want to be surprised, discover new places, new people, have fun, be moved, learn without realizing...",
+  }
+};
+
+
 var infos = [];
 var defis = {};
-var currentDefi = 'all';
+var currentFilter = {};
 var popin = null;
 var detailPopin = null;
 
 // Create popup
 
 $(document).ready(function(){
-    getJSON();
-    setDimensions();
+    getJSON(refresh);
+    //setDimensions();
+    setListeners();
 });
 
-getJSON = function() {
+getJSON = function(callback) {
   $.getJSON(miConfig.infosUri, function(data) {
-      infos = data.Submissions.map(function(info){
+      infos = data.export.map(function(info){
         info.countries = info['Country/ies of origin'].split('/').map(function(country) {
           var name = country.trim();
           if (!name) { return null; }
@@ -56,8 +104,8 @@ getJSON = function() {
         info.tags = info.Tags.split(',').map(function(s) { return s.trim(); });
         info.domain = LONGLABELS_MAP[info['Use Case category']];
         info.status = {
-          'Just an idea or a scenario': 'idea', 
-          'Under development': 'under_development', 
+          'Just an idea or a scenario': 'idea',
+          'Under development': 'under_development',
           'Currently operational': 'operational',
         }[info['Is this service or application...']];
         info.linkOnly = !(info['Slogan / Tweet-length description'] ||
@@ -68,9 +116,11 @@ getJSON = function() {
 
         return info;
       });
+      callback();
   });
 };
 
+// TODO
 setDimensions = function(forcedWidth) {
   var wW, wH;
   if (forcedWidth) {
@@ -89,41 +139,82 @@ setDimensions = function(forcedWidth) {
   } else {
     height = wH;
     width = wH * BASE_RATIO ;
-
   }
 
   $("#container").width(width);
   $("#container").height(height);
   $("#container").css('margin-left', (wW - width) / 2);
 
-  $("#container").click(onClickOpenListPopin);
+  //$("#container").click(onClickOpenListPopin);
 };
 
 
-onClickOpenListPopin = function(ev) {
-    var coord = toResizedPolar(ev);
-    var inArea;
-    inArea = miConfig.areas.filter(function(area) {
-      if (area.rMin < coord.r && coord.r < area.rMax) {
-        var tMax = area.tMax;
-        var t = coord.t
-        if (area.tMin > area.tMax) {
-          tMax += 2 * Math.PI;
-          if (coord.t < area.tMin) { t += 2 * Math.PI; }
-        }
-        if (area.tMin < t && t < tMax) {
-          return true;
-        }
-      }
-      return false;
+setListeners = function() {
+  // TODO $("#container").click(onClickDisk);
+
+  $('form input:radio').change(function() {
+    var status = $('form input:radio:checked').val();
+    if (status === 'all') {
+      status = undefined;
+    }
+    updateFilter({ status: status });
+  });
+
+  // debouncer($, 'slowInput', 'input', 30);
+  $('#query').on('input', function(ev) {
+    // TODO debounce !
+    updateFilter({ 'q': $('#query').val().toLowerCase() });
+
+  });
+  // updateFilter({});
+};
+
+refresh = function() {
+  var list = filterList(currentFilter).infos;
+  console.log(list);
+  var byDomain = groupByKey(list, 'domain');
+  $('main #list').empty();
+  Object.keys(byDomain).sort().forEach(function(name) {
+    console.log(byDomain[name]);
+    var domainElem = $(domainTemplate($.extend({
+      byStatus: groupByKey(byDomain[name], 'status', 'Title'),
+    }, DOMAINS[name])));
+    $('main #list').append(domainElem);
+    domainElem.find('li span').click(function(ev) {
+      ev.stopPropagation();
+      var name = $(ev.target).parent().data('title');
+      //BAD IE9 var name = ev.target.parentElement.dataset.title;
+      openDetailPopin(getByKV('Title', name));
     });
 
-    if (inArea.length > 0) {
-      var category = inArea[0].longLabel;
-      var filter = { 'Use Case category': category };
-      openListPopin(filter);
-    }
-};
+
+  });
+}
+
+// onClickOpenListPopin = function(ev) {
+//     var coord = toResizedPolar(ev);
+//     var inArea;
+//     inArea = miConfig.areas.filter(function(area) {
+//       if (area.rMin < coord.r && coord.r < area.rMax) {
+//         var tMax = area.tMax;
+//         var t = coord.t
+//         if (area.tMin > area.tMax) {
+//           tMax += 2 * Math.PI;
+//           if (coord.t < area.tMin) { t += 2 * Math.PI; }
+//         }
+//         if (area.tMin < t && t < tMax) {
+//           return true;
+//         }
+//       }
+//       return false;
+//     });
+
+//     if (inArea.length > 0) {
+//       var category = inArea[0].longLabel;
+//       var filter = { 'Use Case category': category };
+//       openListPopin(filter);
+//     }
+// };
 
 
 // resetDefi = function() {
@@ -139,46 +230,45 @@ onClickOpenListPopin = function(ev) {
 // }
 
 
+// openListPopin = function(filter) {
+//   if (popin) {
+//     popin.remove();
+//     popin = null;
+//   }
+//   var list = prepareListForPopin(filter);
+//   popin = $(templatelistpopin(list));
 
+//   popin.find('.close').click(function(ev) {
+//     ev.stopPropagation();
+//     popin.remove();
 
-openListPopin = function(filter) {
-  if (popin) {
-    popin.remove();
-    popin = null;
-  }
-  var list = prepareListForPopin(filter);
-  popin = $(templatelistpopin(list));
+//   });
 
-  popin.find('.close').click(function(ev) {
-    ev.stopPropagation();
-    popin.remove();
+//   popin.find('li span').click(function(ev) {
+//       ev.stopPropagation();
+//       var position = {
+//         left: $(ev.target).parents('.listpopin').position().left - 182 - Math.random() * 5,
+//         top: ev.pageY - $('#container').offset().top - 20,
+//       };
+//       var name = $(ev.target).parent().data('title');
+//       //BAD IE9 var name = ev.target.parentElement.dataset.title;
+//       openDetailPopin(getByKV('Title', name), position);
+//     });
 
-  });
+//   $("#container").append(popin);
+// };
 
-  popin.find('li span').click(function(ev) {
-      ev.stopPropagation();
-      var position = {
-        left: $(ev.target).parents('.listpopin').position().left - 182 - Math.random() * 5,
-        top: ev.pageY - $('#container').offset().top - 20,
-      };
-      var name = $(ev.target).parent().data('title');
-      //BAD IE9 var name = ev.target.parentElement.dataset.title;
-      openDetailPopin(getByKV('Title', name), position);
-    });
-
-  $("#container").append(popin);
-};
-
-prepareListForPopin = function(filter) {
-  var list;
-  list = filterList(filter);
-  list.position = POSITIONS[list.title];
-  list.longLabel = LABELS_MAP[list.title];
-  list.byStatus = groupByKey(list.infos, 'status', 'Title');
-  return list;
-};
+// prepareListForPopin = function(filter) {
+//   var list;
+//   list = filterList(filter);
+//   list.position = POSITIONS[list.title];
+//   list.longLabel = LABELS_MAP[list.title];
+//   list.byStatus = groupByKey(list.infos, 'status', 'Title');
+//   return list;
+// };
 
 openDetailPopin = function(info) {
+  console.log(info);
   // Only one detailpopin at a time
   if (detailPopin) {
     detailPopin.remove();
@@ -192,9 +282,9 @@ openDetailPopin = function(info) {
     detailPopin.remove();
   });
 
-  $("#container").append(detailPopin);
+  $("body").append(detailPopin);
 
-  detailPopin.find("img").error(function(){ $(this).hide(); });
+  // detailPopin.find("img").error(function(){ $(this).hide(); });
   detailPopin.find('h1.textfill').textfill({ maxFontPixels: 90, });
   detailPopin.find('.textfill.slogan').textfill({ maxFontPixels: 30, });
   detailPopin.find('.textfill.description').textfill({ maxFontPixels: 20, });
@@ -204,7 +294,7 @@ openDetailPopin = function(info) {
 
 
 ////////////// Display for print version ///////////////
-  
+
 displayPrint = function() {
 
   $('#credits').hide();
@@ -215,12 +305,12 @@ displayPrint = function() {
   var sortedCategory = Object.keys(LONGLABELS_MAP).sort();
 
   var byCategory = groupByKey(infos, 'Use Case category', 'Title');
-  sortedCategory.forEach(function(label) { 
+  sortedCategory.forEach(function(label) {
     byStatus = groupByKey(byCategory[label], 'status', 'Title');
-    $('#printcontainer').append('<div class="printcontainer">' + 
+    $('#printcontainer').append('<div class="printcontainer">' +
       templateprintlist({
         title: LONGLABELS_MAP[label],
-        longLabel: label, 
+        longLabel: label,
         byStatus: byStatus,
       })
       + '</div>');
@@ -236,7 +326,7 @@ displayPrint = function() {
 
     byCategory[label].forEach(function(useCase) {
       $('#printcontainer').append(
-          '<div class="printcontainer' + index % 2 + '">' + 
+          '<div class="printcontainer' + index % 2 + '">' +
           templateusecase(useCase)
         + '</div>');
 
@@ -255,7 +345,14 @@ displayPrint = function() {
 };
 
 
-
+////////////// Manage filter ///////////////
+// var throttledRefresh = $.throttle(500, refresh);
+updateFilter = function(options) {
+  $.extend(currentFilter, options);
+  console.log(currentFilter);
+  // throttledRefresh();
+  refresh();
+}
 ////////////// Data filtering and manipulations ///////////////
 
 getByKV = function(key, value) {
@@ -267,7 +364,7 @@ getByKV = function(key, value) {
 
 filterList = function(filter) {
   var list = {
-    title: "search", 
+    title: "search",
   };
 
 
@@ -290,14 +387,14 @@ filterList = function(filter) {
       var keep = true;
       var passFilter = false;
       for (k in filter) {
-        if (k === 'all') { // key word search, filter[k] is a String.
+        if (k === 'q') { // key word search, filter[k] is a String.
           passFilter = Object.keys(info).some(function(key) {
             return valueSome(info[key], function(v) {
               if (typeof v !== "string") { return false; }
               return v.toLowerCase().indexOf(filter[k]) !== -1 ; });
           });
-        } else if (k === 'defi') {
-          passFilter = $.inArray(info.desc, defis[filter[k]]) != -1;
+        // } else if (k === 'status') {
+        //   passFilter = info[filter[k][$.inArray(info.desc, defis[filter[k]]) != -1;
         } else if (filter[k] instanceof Array) {
           passFilter = filter[k].some(function(v) { return hasValue(info[k], v); });
         } else {

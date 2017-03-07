@@ -1,6 +1,6 @@
 .usecase
-  a(href=Website)
-    img(src=Website + 'favicon.ico')
+  a(href=Website, target='_blanc')
+    img(src=Website + 'favicon.ico', onerror="this.style.display='none';")
     h1.textfill
       span= Title
 
@@ -11,7 +11,7 @@
   .countries
     each country in countries
       img(src=country.flagURI, title=country.name)
-      
+
   .usecase-main
     if Slogan___Tweet_length_description
       .slogan.textfill
@@ -47,7 +47,7 @@
 
     h3 Website
     .website.textfill
-      span= Website
+      a(href=Website, target='_blanc')= Website
 
       if Link_file_if_necessary
         a(href=Link_file_if_necessary) Resources
